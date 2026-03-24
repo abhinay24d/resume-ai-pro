@@ -1,0 +1,3 @@
+# Job Descriptions
+
+We are looking for a Python Developer with knowledge of Flask, APIs, SQL, Machine Learning, and Data Analysis. The candidate should have experience in backend development, problem-solving skills, and understanding of algorithms.

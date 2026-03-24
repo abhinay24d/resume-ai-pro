@@ -1,0 +1,5 @@
+{
+  "name": "ATS Resume Pro",
+  "description": "Advanced ATS Resume Analyzer with PDF parsing, keyword extraction, and similarity scoring.",
+  "requestFramePermissions": []
+}
