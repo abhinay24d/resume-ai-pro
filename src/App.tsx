@@ -9,10 +9,17 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 interface AnalysisResult {
   score: number;
+  sectionScores: {
+    education: number;
+    experience: number;
+    skills: number;
+    formatting: number;
+  };
   missingKeywords: string[];
   newSkillsToLearn: string[];
   skillsToImprove: string[];
   improvements: { title: string; suggestion: string; impact: string }[];
+  workExperienceMatchScore?: number;
   resumePreview: string;
 }
 
@@ -151,17 +158,6 @@ export default function App() {
     setResult(null);
 
     try {
-      // Save job title first
-      const jobDescResponse = await fetch('/api/job-description', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: jobTitle, content: '' }),
-      });
-      
-      if (!jobDescResponse.ok) {
-        throw new Error('Failed to save job title');
-      }
-
       const formData = new FormData();
       formData.append('resume', file);
       formData.append('jobTitle', jobTitle);
@@ -257,34 +253,34 @@ export default function App() {
   if (!isAuthReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
-        <Loader2 className="w-8 h-8 animate-spin text-black/40" />
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-500 selection:text-white">
       {/* Header */}
-      <header className="border-b border-black/5 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <button onClick={handleGoHome} className="flex items-center gap-2 hover:opacity-80 transition-opacity text-left">
-            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md shadow-indigo-600/20">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold text-xl tracking-tight">ATS Resume Pro</span>
+            <span className="font-bold text-xl tracking-tight text-slate-800">ATS Resume Pro</span>
           </button>
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-black/80">
-                  <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center border border-black/10">
-                    <UserIcon className="w-4 h-4 text-black/60" />
+                <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                    <UserIcon className="w-4 h-4 text-slate-500" />
                   </div>
                   <span className="hidden sm:inline">{user.name || user.email}</span>
                 </div>
                 <button 
                   onClick={handleSignOut}
-                  className="p-2 text-black/60 hover:text-black hover:bg-black/5 rounded-full transition-colors"
+                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
                   title="Sign Out"
                 >
                   <LogOut className="w-4 h-4" />
@@ -293,7 +289,7 @@ export default function App() {
             ) : (
               <button 
                 onClick={() => setShowSignIn(true)}
-                className="bg-black text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-black/80 transition-all"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20"
               >
                 Sign In
               </button>
@@ -314,23 +310,23 @@ export default function App() {
             >
               <div className="space-y-12">
                 <section>
-                  <h1 className="text-5xl lg:text-7xl font-bold tracking-tight mb-6 leading-[0.9]">
+                  <h1 className="text-5xl lg:text-7xl font-bold tracking-tight mb-6 leading-[0.9] text-slate-800">
                     Analyze your resume <br />
-                    <span className="text-black/40">against any job description.</span>
+                    <span className="text-indigo-400">against any job title.</span>
                   </h1>
-                  <p className="text-lg text-black/60 max-w-md">
-                    Provide the target role details and upload your resume to get instant feedback.
+                  <p className="text-lg text-slate-500 max-w-md">
+                    Select a target role and upload your resume to get instant feedback.
                   </p>
                 </section>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Job Title Block */}
-                  <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-xl shadow-black/5 space-y-3">
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-black/40">1. Job Title</h3>
+                  <div className="bg-white border border-indigo-100 rounded-3xl p-6 shadow-xl shadow-indigo-900/5 space-y-3">
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-indigo-400">1. Job Title</h3>
                     <select
                       value={jobTitle}
                       onChange={(e) => setJobTitle(e.target.value)}
-                      className="w-full px-4 py-3 bg-black/5 rounded-xl border-none focus:ring-2 focus:ring-black/10 outline-none transition-all font-sans text-sm custom-scrollbar"
+                      className="w-full px-4 py-3 bg-indigo-50/50 rounded-xl border border-indigo-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-sans text-sm custom-scrollbar"
                       required
                     >
                       <option value="" disabled>Select a target role...</option>
@@ -341,16 +337,16 @@ export default function App() {
                   </div>
 
                   {/* Upload Resume Block */}
-                  <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-xl shadow-black/5 space-y-3">
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-black/40">2. Upload Resume</h3>
+                  <div className="bg-white border border-indigo-100 rounded-3xl p-6 shadow-xl shadow-indigo-900/5 space-y-3">
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-indigo-400">2. Upload Resume</h3>
                     <div
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
                       className={`relative group border-2 border-dashed rounded-2xl p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 ${
                         isDragging 
-                          ? 'border-black bg-black/5 scale-[0.99]' 
-                          : 'border-black/10 hover:border-black/20 bg-black/5'
+                          ? 'border-indigo-500 bg-indigo-50/50 scale-[0.99]' 
+                          : 'border-indigo-200 hover:border-indigo-400 bg-indigo-50/30'
                       }`}
                     >
                       <input
@@ -361,15 +357,15 @@ export default function App() {
                         required
                       />
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
-                        file ? 'bg-emerald-50 text-emerald-600' : 'bg-white text-black/40 group-hover:bg-black/5 group-hover:text-black/60 shadow-sm'
+                        file ? 'bg-indigo-100 text-indigo-600' : 'bg-white text-indigo-400 group-hover:bg-indigo-100 group-hover:text-indigo-600 shadow-sm'
                       }`}>
                         {file ? <CheckCircle className="w-6 h-6" /> : <Upload className="w-6 h-6" />}
                       </div>
                       <div className="text-center">
-                        <p className="font-semibold text-sm">
+                        <p className="font-semibold text-sm text-slate-700">
                           {file ? file.name : 'Drop your resume here'}
                         </p>
-                        <p className="text-xs text-black/40">
+                        <p className="text-xs text-slate-500">
                           {file ? 'Click to change file' : 'or click to browse (PDF only)'}
                         </p>
                       </div>
@@ -382,7 +378,7 @@ export default function App() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600"
+                        className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600"
                       >
                         <AlertCircle className="w-5 h-5" />
                         <p className="text-sm font-medium">{error}</p>
@@ -395,8 +391,8 @@ export default function App() {
                     disabled={!file || !jobTitle || isAnalyzing}
                     className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${
                       !file || !jobTitle || isAnalyzing
-                        ? 'bg-black/5 text-black/20 cursor-not-allowed'
-                        : 'bg-black text-white hover:bg-black/90 active:scale-[0.98] shadow-xl shadow-black/10'
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98] shadow-xl shadow-indigo-600/20'
                     }`}
                   >
                     {isAnalyzing ? (
@@ -415,25 +411,25 @@ export default function App() {
               </div>
               
               <div className="hidden lg:flex relative h-full items-center justify-center">
-                <div className="absolute inset-0 bg-black/5 rounded-[3rem] -z-10 transform rotate-3"></div>
-                <div className="bg-white p-12 rounded-[3rem] shadow-2xl border border-black/5 relative w-full aspect-square flex flex-col items-center justify-center text-center space-y-8">
-                  <div className="rail-text absolute left-6 top-1/2 -translate-y-1/2 text-black/20 font-bold">
+                <div className="absolute inset-0 bg-indigo-50 rounded-[3rem] -z-10 transform rotate-3"></div>
+                <div className="bg-white p-12 rounded-[3rem] shadow-2xl shadow-indigo-900/5 border border-indigo-50 relative w-full aspect-square flex flex-col items-center justify-center text-center space-y-8">
+                  <div className="rail-text absolute left-6 top-1/2 -translate-y-1/2 text-indigo-200 font-bold">
                     ATS RESUME PRO
                   </div>
-                  <div className="feature-bubble absolute top-12 right-12">
+                  <div className="feature-bubble absolute top-12 right-12 text-violet-500 bg-violet-50 border-violet-100">
                     <Sparkles className="w-6 h-6" />
                   </div>
-                  <div className="feature-bubble absolute bottom-12 left-24">
+                  <div className="feature-bubble absolute bottom-12 left-24 text-indigo-500 bg-indigo-50 border-indigo-100">
                     <FileText className="w-6 h-6" />
                   </div>
-                  <div className="cta-circle absolute bottom-12 right-12 bg-black text-white">
+                  <div className="cta-circle absolute bottom-12 right-12 bg-indigo-600 text-white shadow-lg shadow-indigo-600/20">
                     START
                   </div>
                   
-                  <h2 className="text-3xl font-bold tracking-tight">
+                  <h2 className="text-3xl font-bold tracking-tight text-slate-800">
                     Beat the bots. <br/> Land the interview.
                   </h2>
-                  <p className="text-black/60 max-w-sm">
+                  <p className="text-slate-500 max-w-sm">
                     Our advanced AI analyzes your resume against industry taxonomies to ensure you're speaking the same language as the Applicant Tracking Systems.
                   </p>
                 </div>
@@ -453,36 +449,36 @@ export default function App() {
                 <motion.div 
                   animate={{ rotate: 360 }}
                   transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                  className="absolute -inset-8 border-[1px] border-dashed border-black/20 rounded-full"
+                  className="absolute -inset-8 border-[1px] border-dashed border-indigo-200 rounded-full"
                 />
                 <motion.div 
                   animate={{ rotate: -360 }}
                   transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-                  className="absolute -inset-12 border-[1px] border-dashed border-black/10 rounded-full"
+                  className="absolute -inset-12 border-[1px] border-dashed border-indigo-100 rounded-full"
                 />
-                <div className="relative w-40 h-52 bg-white border-4 border-black/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col p-6 gap-4">
-                  <div className="h-3 bg-black/10 rounded-full w-3/4"></div>
-                  <div className="h-3 bg-black/10 rounded-full w-full"></div>
-                  <div className="h-3 bg-black/10 rounded-full w-5/6"></div>
-                  <div className="h-3 bg-black/10 rounded-full w-full"></div>
-                  <div className="h-3 bg-black/10 rounded-full w-2/3"></div>
-                  <div className="h-3 bg-black/10 rounded-full w-4/5"></div>
-                  <div className="h-3 bg-black/10 rounded-full w-full"></div>
+                <div className="relative w-40 h-52 bg-white border-4 border-indigo-100 rounded-2xl overflow-hidden shadow-2xl shadow-indigo-900/10 flex flex-col p-6 gap-4">
+                  <div className="h-3 bg-indigo-50 rounded-full w-3/4"></div>
+                  <div className="h-3 bg-indigo-50 rounded-full w-full"></div>
+                  <div className="h-3 bg-indigo-50 rounded-full w-5/6"></div>
+                  <div className="h-3 bg-indigo-50 rounded-full w-full"></div>
+                  <div className="h-3 bg-indigo-50 rounded-full w-2/3"></div>
+                  <div className="h-3 bg-indigo-50 rounded-full w-4/5"></div>
+                  <div className="h-3 bg-indigo-50 rounded-full w-full"></div>
                   
                   <motion.div 
                     animate={{ y: [-20, 220, -20] }} 
                     transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-transparent via-emerald-500/20 to-emerald-500/50 border-b-2 border-emerald-500 shadow-[0_5px_15px_rgba(16,185,129,0.5)]"
+                    className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-transparent via-indigo-500/20 to-indigo-500/50 border-b-2 border-indigo-500 shadow-[0_5px_15px_rgba(99,102,241,0.5)]"
                   />
                 </div>
               </div>
               <div className="text-center space-y-3">
-                <h2 className="text-3xl font-bold tracking-tight flex items-center justify-center gap-3">
-                  <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+                <h2 className="text-3xl font-bold tracking-tight flex items-center justify-center gap-3 text-slate-800">
+                  <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
                   Analyzing Resume
                 </h2>
-                <p className="text-black/50 text-base font-medium animate-pulse">
-                  Extracting keywords and calculating TF-IDF score...
+                <p className="text-slate-500 text-base font-medium animate-pulse">
+                  Extracting keywords and analyzing your resume...
                 </p>
               </div>
             </motion.div>
@@ -496,58 +492,59 @@ export default function App() {
               exit={{ opacity: 0, y: -20 }}
               className="w-full space-y-8"
             >
-              <button onClick={handleGoHome} className="flex items-center gap-2 text-sm font-bold text-black/40 hover:text-black transition-colors">
+              <button onClick={handleGoHome} className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-slate-800 transition-colors">
                 <ArrowLeft className="w-4 h-4" /> Back to Upload
               </button>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left Side: PDF Viewer */}
-                <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-xl shadow-black/5 flex flex-col h-[800px]">
-                  <h2 className="text-xl font-bold mb-4 shrink-0">Uploaded Resume</h2>
-                  <div className="flex-1 overflow-y-auto rounded-2xl border border-black/5 bg-black/5 p-4 custom-scrollbar">
+                <div className="bg-white border border-indigo-100 rounded-3xl p-6 shadow-xl shadow-indigo-900/5 flex flex-col h-[800px]">
+                  <h2 className="text-xl font-bold mb-4 shrink-0 text-slate-800">Uploaded Resume</h2>
+                  <div className="flex-1 overflow-y-auto rounded-2xl border border-indigo-50 bg-slate-50 p-4 custom-scrollbar">
                     {file ? (
                       <Document
                         file={file}
                         onLoadSuccess={onDocumentLoadSuccess}
                         loading={
                           <div className="flex items-center justify-center h-full">
-                            <Loader2 className="w-8 h-8 animate-spin text-black/40" />
+                            <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
                           </div>
                         }
                         error={
-                          <div className="flex items-center justify-center h-full text-red-500">
+                          <div className="flex items-center justify-center h-full text-rose-500">
                             Failed to load PDF.
                           </div>
                         }
                         className="flex flex-col items-center gap-4"
                       >
                         {Array.from(new Array(numPages || 0), (el, index) => (
-                          <Page
-                            key={`page_${index + 1}`}
-                            pageNumber={index + 1}
-                            renderTextLayer={true}
-                            renderAnnotationLayer={true}
-                            className="shadow-md rounded-lg overflow-hidden"
-                            width={500}
-                          />
+                          <div key={`page_${index + 1}`}>
+                            <Page
+                              pageNumber={index + 1}
+                              renderTextLayer={true}
+                              renderAnnotationLayer={true}
+                              className="shadow-md rounded-lg overflow-hidden"
+                              width={500}
+                            />
+                          </div>
                         ))}
                       </Document>
                     ) : (
                       <div className="flex-1 flex items-center justify-center h-full">
-                        <p className="text-black/40">PDF preview not available</p>
+                        <p className="text-slate-400">PDF preview not available</p>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Right Side: Analysis Results */}
-                <div className="bg-white border border-black/5 rounded-3xl p-10 shadow-xl shadow-black/5 space-y-10 h-[800px] overflow-y-auto">
+                <div className="bg-white border border-indigo-100 rounded-3xl p-10 shadow-xl shadow-indigo-900/5 space-y-10 h-[800px] overflow-y-auto">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">Analysis Result</h2>
-                    <span className="text-xs font-bold uppercase tracking-widest text-black/40">Score</span>
+                    <h2 className="text-2xl font-bold text-slate-800">Analysis Result</h2>
+                    <span className="text-xs font-bold uppercase tracking-widest text-indigo-400">Score</span>
                   </div>
 
-                  <div className="flex justify-center">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="flex flex-col items-center gap-4">
                       <div className="relative w-32 h-32 flex items-center justify-center shrink-0">
                         <svg className="w-full h-full -rotate-90">
@@ -558,7 +555,7 @@ export default function App() {
                             fill="none"
                             stroke="currentColor"
                             strokeWidth="10"
-                            className="text-black/5"
+                            className="text-indigo-50"
                           />
                           <circle
                             cx="64"
@@ -570,21 +567,57 @@ export default function App() {
                             strokeDasharray={351.8}
                             strokeDashoffset={351.8 - (351.8 * result.score) / 100}
                             className={`${
-                              result.score > 70 ? 'text-emerald-500' : result.score > 40 ? 'text-amber-500' : 'text-red-500'
+                              result.score > 70 ? 'text-indigo-500' : result.score > 40 ? 'text-amber-500' : 'text-rose-500'
                             } transition-all duration-1000 ease-out`}
                           />
                         </svg>
-                        <span className="absolute text-3xl font-black">{Math.round(result.score)}%</span>
+                        <span className="absolute text-3xl font-black text-slate-800">{Math.round(result.score)}%</span>
                       </div>
                       <div className="text-center">
-                        <h3 className="font-bold text-lg">Overall Match</h3>
-                        <p className="text-sm text-black/60">Keyword & Industry Score</p>
+                        <h3 className="font-bold text-lg text-slate-800">Overall Match</h3>
+                        <p className="text-sm text-slate-500">Keyword & TF-IDF Score</p>
                       </div>
                     </div>
+
+                    {result.workExperienceMatchScore !== undefined && (
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="relative w-32 h-32 flex items-center justify-center shrink-0">
+                          <svg className="w-full h-full -rotate-90">
+                            <circle
+                              cx="64"
+                              cy="64"
+                              r="56"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="10"
+                              className="text-indigo-50"
+                            />
+                            <circle
+                              cx="64"
+                              cy="64"
+                              r="56"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="10"
+                              strokeDasharray={351.8}
+                              strokeDashoffset={351.8 - (351.8 * result.workExperienceMatchScore) / 100}
+                              className={`${
+                                result.workExperienceMatchScore > 70 ? 'text-indigo-500' : result.workExperienceMatchScore > 40 ? 'text-amber-500' : 'text-rose-500'
+                              } transition-all duration-1000 ease-out`}
+                            />
+                          </svg>
+                          <span className="absolute text-3xl font-black text-slate-800">{Math.round(result.workExperienceMatchScore)}%</span>
+                        </div>
+                        <div className="text-center">
+                          <h3 className="font-bold text-lg text-slate-800">Experience Match</h3>
+                          <p className="text-sm text-slate-500">Seniority & Relevance</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="bg-black/5 p-6 rounded-2xl">
-                    <p className="text-lg font-medium text-black/70 leading-relaxed text-center">
+                  <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100">
+                    <p className="text-lg font-medium text-indigo-900 leading-relaxed text-center">
                       {result.score > 70 
                         ? "Excellent match! Your resume is highly optimized for this role." 
                         : result.score > 40 
@@ -593,20 +626,47 @@ export default function App() {
                     </p>
                   </div>
 
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                      { label: 'Education', score: result.sectionScores?.education || 0 },
+                      { label: 'Experience', score: result.sectionScores?.experience || 0 },
+                      { label: 'Skills', score: result.sectionScores?.skills || 0 },
+                      { label: 'Formatting', score: result.sectionScores?.formatting || 0 }
+                    ].map((section, idx) => (
+                      <div key={idx} className="bg-white border border-indigo-100 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 shadow-sm">
+                        <div className="relative w-16 h-16 flex items-center justify-center">
+                          <svg className="w-full h-full -rotate-90">
+                            <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="6" className="text-indigo-50" />
+                            <circle
+                              cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="6"
+                              strokeDasharray={175.9}
+                              strokeDashoffset={175.9 - (175.9 * section.score) / 100}
+                              className={`${
+                                section.score > 70 ? 'text-indigo-500' : section.score > 40 ? 'text-amber-500' : 'text-rose-500'
+                              } transition-all duration-1000 ease-out`}
+                            />
+                          </svg>
+                          <span className="absolute text-sm font-bold text-slate-700">{Math.round(section.score)}%</span>
+                        </div>
+                        <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">{section.label}</span>
+                      </div>
+                    ))}
+                  </div>
+
                   <div className="space-y-4">
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-black/40">Missing Keywords</h3>
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-indigo-400">Missing Keywords</h3>
                     <div className="flex flex-wrap gap-2">
                       {result.missingKeywords.length > 0 ? (
                         result.missingKeywords.map((keyword, i) => (
                           <span 
                             key={i} 
-                            className="px-4 py-2 bg-black/5 rounded-full text-sm font-semibold text-black/70 border border-black/5"
+                            className="px-4 py-2 bg-rose-50 rounded-full text-sm font-semibold text-rose-700 border border-rose-100"
                           >
                             {keyword}
                           </span>
                         ))
                       ) : (
-                        <p className="text-sm text-emerald-600 font-medium flex items-center gap-2">
+                        <p className="text-sm text-indigo-600 font-medium flex items-center gap-2">
                           <CheckCircle className="w-5 h-5" />
                           No critical keywords missing!
                         </p>
@@ -633,14 +693,14 @@ export default function App() {
                     )}
 
                     {result.newSkillsToLearn && result.newSkillsToLearn.length > 0 && (
-                      <div className="space-y-4 bg-emerald-50/50 border border-emerald-100 p-6 rounded-3xl">
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-emerald-600">New Skills to Learn</h3>
-                        <p className="text-sm text-emerald-700/70 mb-4">These are highly relevant to the role but appear to be missing from your resume.</p>
+                      <div className="space-y-4 bg-indigo-50/50 border border-indigo-100 p-6 rounded-3xl">
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-indigo-600">New Skills to Learn</h3>
+                        <p className="text-sm text-indigo-700/70 mb-4">These are highly relevant to the role but appear to be missing from your resume.</p>
                         <div className="flex flex-wrap gap-2">
                           {result.newSkillsToLearn.map((skill, i) => (
                             <span 
                               key={i} 
-                              className="px-4 py-2 bg-emerald-100/50 text-emerald-800 rounded-full text-sm font-semibold border border-emerald-200/50"
+                              className="px-4 py-2 bg-indigo-100/50 text-indigo-800 rounded-full text-sm font-semibold border border-indigo-200/50"
                             >
                               {skill}
                             </span>
@@ -652,26 +712,26 @@ export default function App() {
 
                   {result.improvements && result.improvements.length > 0 && (
                     <div className="space-y-4">
-                      <h3 className="text-sm font-bold uppercase tracking-widest text-black/40">AI Improvement Suggestions</h3>
+                      <h3 className="text-sm font-bold uppercase tracking-widest text-indigo-400">AI Improvement Suggestions</h3>
                       <div className="space-y-4">
                         {result.improvements.map((improvement, i) => (
-                          <div key={i} className="flex flex-col gap-2 bg-black/5 p-5 rounded-2xl border border-black/5">
+                          <div key={i} className="flex flex-col gap-2 bg-indigo-50/30 p-5 rounded-2xl border border-indigo-100">
                             <div className="flex items-center justify-between gap-4">
                               <div className="flex items-center gap-2">
-                                <Sparkles className="w-4 h-4 text-emerald-600" />
-                                <h4 className="font-bold text-black/80">{improvement.title}</h4>
+                                <Sparkles className="w-4 h-4 text-violet-500" />
+                                <h4 className="font-bold text-slate-800">{improvement.title}</h4>
                               </div>
                               <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
                                 improvement.impact.toLowerCase() === 'high' 
-                                  ? 'bg-red-100 text-red-700' 
+                                  ? 'bg-rose-100 text-rose-700' 
                                   : improvement.impact.toLowerCase() === 'medium'
                                   ? 'bg-amber-100 text-amber-700'
-                                  : 'bg-blue-100 text-blue-700'
+                                  : 'bg-indigo-100 text-indigo-700'
                               }`}>
                                 {improvement.impact} Impact
                               </span>
                             </div>
-                            <p className="text-sm text-black/60 leading-relaxed pl-6">
+                            <p className="text-sm text-slate-600 leading-relaxed pl-6">
                               {improvement.suggestion}
                             </p>
                           </div>
@@ -681,8 +741,8 @@ export default function App() {
                   )}
 
                   <div className="space-y-4">
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-black/40">Resume Preview</h3>
-                    <p className="text-sm text-black/50 bg-black/5 p-6 rounded-2xl italic leading-relaxed">
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-indigo-400">Resume Preview</h3>
+                    <p className="text-sm text-slate-600 bg-indigo-50/30 border border-indigo-100 p-6 rounded-2xl italic leading-relaxed">
                       "{result.resumePreview}"
                     </p>
                   </div>
@@ -694,18 +754,18 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-black/5 py-12 mt-12">
+      <footer className="border-t border-indigo-50 py-12 mt-12">
         <div className="max-w-5xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-2 opacity-40">
+          <div className="flex items-center gap-2 opacity-40 text-slate-800">
             <Sparkles className="w-4 h-4" />
             <span className="font-bold text-sm">ATS Resume Pro</span>
           </div>
-          <div className="flex gap-8 text-sm font-medium text-black/40">
-            <a href="#" className="hover:text-black transition-colors">Privacy</a>
-            <a href="#" className="hover:text-black transition-colors">Terms</a>
-            <a href="#" className="hover:text-black transition-colors">Contact</a>
+          <div className="flex gap-8 text-sm font-medium text-slate-400">
+            <a href="#" className="hover:text-indigo-600 transition-colors">Privacy</a>
+            <a href="#" className="hover:text-indigo-600 transition-colors">Terms</a>
+            <a href="#" className="hover:text-indigo-600 transition-colors">Contact</a>
           </div>
-          <p className="text-xs text-black/20 font-medium">
+          <p className="text-xs text-slate-400 font-medium">
             © 2026 ATS Resume Pro. All rights reserved.
           </p>
         </div>
@@ -720,7 +780,7 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowSignIn(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -730,26 +790,26 @@ export default function App() {
             >
               <button 
                 onClick={() => setShowSignIn(false)}
-                className="absolute top-6 right-6 text-black/40 hover:text-black transition-colors"
+                className="absolute top-6 right-6 text-slate-400 hover:text-slate-800 transition-colors"
               >
                 <AlertCircle className="w-6 h-6 rotate-45" />
               </button>
               
               <div className="flex flex-col items-center mt-4">
-                <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-black/10">
+                <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-indigo-600/20">
                   <Sparkles className="w-8 h-8 text-white" />
                 </div>
-                <h2 className="text-2xl font-bold tracking-tight mb-2">
+                <h2 className="text-2xl font-bold tracking-tight mb-2 text-slate-800">
                   {authMode === 'login' ? 'Welcome Back' : 'Create Account'}
                 </h2>
-                <p className="text-black/60 text-sm mb-6 text-center leading-relaxed">
+                <p className="text-slate-500 text-sm mb-6 text-center leading-relaxed">
                   {authMode === 'login' 
                     ? 'Sign in to analyze your resume and get personalized feedback.' 
                     : 'Register to analyze your resume and get personalized feedback.'}
                 </p>
                 
                 {authError && (
-                  <div className="w-full bg-red-50 text-red-600 text-sm p-3 rounded-xl mb-4 border border-red-100 text-center">
+                  <div className="w-full bg-rose-50 text-rose-600 text-sm p-3 rounded-xl mb-4 border border-rose-100 text-center">
                     {authError}
                   </div>
                 )}
@@ -757,56 +817,56 @@ export default function App() {
                 <form onSubmit={handleSignIn} className="w-full space-y-4">
                   {authMode === 'register' && (
                     <div>
-                      <label className="block text-xs font-bold text-black/60 mb-1 uppercase tracking-wider">Name</label>
+                      <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Name</label>
                       <input 
                         type="text" 
                         required
                         value={authForm.name}
                         onChange={e => setAuthForm({...authForm, name: e.target.value})}
-                        className="w-full px-4 py-3 rounded-xl bg-black/5 border-none focus:ring-2 focus:ring-black/10 outline-none transition-all"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-indigo-50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-800 placeholder:text-slate-400"
                         placeholder="John Doe"
                       />
                     </div>
                   )}
                   <div>
-                    <label className="block text-xs font-bold text-black/60 mb-1 uppercase tracking-wider">Email</label>
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Email</label>
                     <input 
                       type="email" 
                       required
                       value={authForm.email}
                       onChange={e => setAuthForm({...authForm, email: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl bg-black/5 border-none focus:ring-2 focus:ring-black/10 outline-none transition-all"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-indigo-50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-800 placeholder:text-slate-400"
                       placeholder="you@example.com"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-black/60 mb-1 uppercase tracking-wider">Password</label>
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Password</label>
                     <input 
                       type="password" 
                       required
                       value={authForm.password}
                       onChange={e => setAuthForm({...authForm, password: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl bg-black/5 border-none focus:ring-2 focus:ring-black/10 outline-none transition-all"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-indigo-50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-slate-800 placeholder:text-slate-400"
                       placeholder="••••••••"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={isAuthLoading}
-                    className="w-full flex items-center justify-center gap-2 bg-black text-white font-bold py-4 px-4 rounded-2xl hover:bg-black/90 transition-all disabled:opacity-70 mt-2"
+                    className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-bold py-4 px-4 rounded-2xl hover:bg-indigo-700 transition-all disabled:opacity-70 mt-2 shadow-lg shadow-indigo-600/20"
                   >
                     {isAuthLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (authMode === 'login' ? 'Sign In' : 'Register')}
                   </button>
                 </form>
 
-                <div className="mt-6 text-sm text-black/60">
+                <div className="mt-6 text-sm text-slate-500">
                   {authMode === 'login' ? "Don't have an account? " : "Already have an account? "}
                   <button 
                     onClick={() => {
                       setAuthMode(authMode === 'login' ? 'register' : 'login');
                       setAuthError('');
                     }}
-                    className="text-black font-bold hover:underline"
+                    className="text-indigo-600 font-bold hover:underline"
                   >
                     {authMode === 'login' ? 'Register' : 'Sign In'}
                   </button>

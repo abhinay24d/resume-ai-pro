@@ -10,7 +10,6 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
 import db from './db.js';
-import { GoogleGenAI, Type } from "@google/genai";
 
 const { PDFParse } = pdfModule;
 const __filename = fileURLToPath(import.meta.url);
@@ -173,97 +172,98 @@ async function startServer() {
       let newSkillsToLearn: string[] = [];
       let skillsToImprove: string[] = [];
       let missingKeywords: string[] = [];
+      let workExperienceMatchScore: number = 0;
       let overallScore: number = 0;
+      let sectionScores = {
+        education: 0,
+        experience: 0,
+        skills: 0,
+        formatting: 0
+      };
       
       try {
-        if (process.env.GEMINI_API_KEY) {
-          const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-          const response = await ai.models.generateContent({
-            model: "gemini-3.1-pro-preview",
-            contents: `You are an expert ATS resume reviewer and career coach.
-            
-            Target Job Title: ${jobTitle}
-            
-            Resume:
-            ${resumeText.substring(0, 3000)}
-            
-            Perform a highly accurate and comprehensive skill gap analysis by evaluating the candidate's resume against the standard industry requirements and expectations for a "${jobTitle}".
-            
-            Provide the following:
-            1. "overallScore": A highly accurate score from 0 to 100 representing the overall match of the resume to the industry standard for a ${jobTitle}.
-            2. "improvements": 3-5 specific, actionable improvement suggestions to better tailor the resume for a ${jobTitle}. Each improvement must have a short "title", a detailed "suggestion" based specifically on the resume content, and an "impact" level (High, Medium, Low).
-            3. "newSkillsToLearn": 4-6 skills highly relevant to a ${jobTitle} that are missing from the resume.
-            4. "skillsToImprove": 4-6 skills present in the resume that should be highlighted better or advanced.
-            5. "missingKeywords": 4-6 critical industry keywords for a ${jobTitle} that are missing in the resume.
-            
-            Return the result as a JSON object with these five keys.`,
-            config: {
-              responseMimeType: "application/json",
-              responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                  overallScore: { type: Type.NUMBER, description: "Overall match score (0-100)" },
-                  improvements: { 
-                    type: Type.ARRAY, 
-                    items: { 
-                      type: Type.OBJECT,
-                      properties: {
-                        title: { type: Type.STRING, description: "Short title of the improvement" },
-                        suggestion: { type: Type.STRING, description: "Detailed, actionable suggestion based on the resume" },
-                        impact: { type: Type.STRING, description: "Impact level: High, Medium, or Low" }
-                      },
-                      required: ["title", "suggestion", "impact"]
-                    }, 
-                    description: "Actionable improvement suggestions" 
-                  },
-                  newSkillsToLearn: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Missing skills relevant to industry taxonomy" },
-                  skillsToImprove: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Present skills to highlight or advance" },
-                  missingKeywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Critical missing industry keywords" }
-                },
-                required: ["overallScore", "improvements", "newSkillsToLearn", "skillsToImprove", "missingKeywords"]
-              }
-            }
-          });
-          
-          if (response.text) {
-            const parsed = JSON.parse(response.text);
-            overallScore = parsed.overallScore || 0;
-            improvements = parsed.improvements || [];
-            newSkillsToLearn = parsed.newSkillsToLearn || [];
-            skillsToImprove = parsed.skillsToImprove || [];
-            missingKeywords = parsed.missingKeywords || [];
-          }
-        }
-      } catch (e) {
-        console.error("Gemini API error:", e);
-      }
+        const textLower = resumeText.toLowerCase();
+        const jobTitleLower = jobTitle.toLowerCase();
+        
+        // Simple keyword matching based on job title
+        const keywordMap: Record<string, string[]> = {
+          'software engineer': ['javascript', 'typescript', 'react', 'node.js', 'python', 'java', 'c++', 'git', 'agile', 'api', 'sql', 'nosql', 'aws', 'docker'],
+          'frontend developer': ['html', 'css', 'javascript', 'react', 'vue', 'angular', 'typescript', 'responsive design', 'webpack', 'ui/ux'],
+          'backend developer': ['node.js', 'python', 'java', 'ruby', 'php', 'sql', 'nosql', 'api', 'rest', 'graphql', 'docker', 'kubernetes', 'aws'],
+          'data scientist': ['python', 'r', 'sql', 'machine learning', 'data analysis', 'statistics', 'pandas', 'numpy', 'scikit-learn', 'tensorflow', 'pytorch'],
+          'product manager': ['agile', 'scrum', 'roadmap', 'jira', 'user stories', 'market research', 'data analysis', 'stakeholder management', 'strategy']
+        };
 
-      // Fallback if Gemini fails
-      if (overallScore === 0) {
-        overallScore = 50;
-        improvements.push({
-          title: "Mention Job Title",
-          suggestion: `Ensure your resume explicitly mentions the target job title "${jobTitle}".`,
-          impact: "High"
+        const defaultKeywords = ['communication', 'teamwork', 'problem solving', 'leadership', 'project management', 'agile'];
+        const targetKeywords = keywordMap[jobTitleLower] || defaultKeywords;
+
+        let matchCount = 0;
+        targetKeywords.forEach(keyword => {
+          if (textLower.includes(keyword)) {
+            matchCount++;
+            skillsToImprove.push(keyword);
+          } else {
+            missingKeywords.push(keyword);
+            newSkillsToLearn.push(keyword);
+          }
         });
-        improvements.push({
-          title: "Quantify Achievements",
-          suggestion: "Quantify your past achievements with metrics (e.g., 'increased sales by 20%') to make your impact more concrete.",
-          impact: "High"
-        });
-        improvements.push({
-          title: "Use Action Verbs",
-          suggestion: "Start each bullet point in your experience section with a strong action verb (e.g., 'Spearheaded', 'Developed', 'Optimized').",
-          impact: "Medium"
-        });
+
+        const keywordScore = Math.round((matchCount / targetKeywords.length) * 100);
+        
+        // Basic heuristics for section scores
+        sectionScores.education = textLower.includes('bachelor') || textLower.includes('master') || textLower.includes('degree') || textLower.includes('university') ? 85 : 40;
+        sectionScores.experience = textLower.includes('experience') || textLower.includes('work') || textLower.includes('employment') ? 80 : 30;
+        sectionScores.skills = keywordScore;
+        sectionScores.formatting = resumeText.length > 500 ? 90 : 50;
+
+        workExperienceMatchScore = sectionScores.experience;
+        overallScore = Math.round((sectionScores.education + sectionScores.experience + sectionScores.skills + sectionScores.formatting) / 4);
+
+        if (missingKeywords.length > 0) {
+          improvements.push({
+            title: 'Add Missing Keywords',
+            suggestion: `Your resume is missing key industry terms like ${missingKeywords.slice(0, 3).join(', ')}. Add them to pass ATS filters.`,
+            impact: 'High'
+          });
+        }
+
+        if (sectionScores.education < 50) {
+          improvements.push({
+            title: 'Highlight Education',
+            suggestion: 'Make sure your education section is clearly labeled with terms like "Bachelor", "Master", or "Degree".',
+            impact: 'Medium'
+          });
+        }
+
+        if (sectionScores.experience < 50) {
+          improvements.push({
+            title: 'Detail Work Experience',
+            suggestion: 'Ensure your work experience is clearly separated and uses strong action verbs.',
+            impact: 'High'
+          });
+        }
+
+        if (improvements.length === 0) {
+           improvements.push({
+            title: 'Great Job',
+            suggestion: 'Your resume looks solid. Keep tailoring it for specific roles.',
+            impact: 'Low'
+          });
+        }
+
+      } catch (e: any) {
+        console.error("Analysis error:", e);
+        return res.status(500).json({ error: `Analysis failed: ${e.message}` });
       }
 
       res.json({
         score: overallScore,
+        sectionScores,
         missingKeywords,
         newSkillsToLearn,
         skillsToImprove,
         improvements,
+        workExperienceMatchScore,
         resumePreview: resumeText.substring(0, 200).replace(/\s+/g, ' ') + '...'
       });
     } catch (error: any) {
